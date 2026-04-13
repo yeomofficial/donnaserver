@@ -47,46 +47,52 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Chat Route
 app.post("/api/chat", async (req, res) => {
-  const { message, history: clientHistory = [] } = req.body;
+  const { message } = req.body;
 
   if (!message) return res.json({ reply: "Say something first." });
 
   try {
-    // Use client history if sent, else server history
-    let currentHistory = clientHistory.length > 0 ? clientHistory : history;
+    // Always use server memory ONLY
+    let currentHistory = history;
 
     const completion = await groq.chat.completions.create({
       messages: [
-        { 
-          role: "system", 
-          content: `You are Donna...` // ← your full system prompt here
+        {
+          role: "system",
+          content: `You are Donna...` // keep your full persona here
         },
         ...currentHistory,
-        { role: "user", content: message }
+        {
+          role: "user",
+          content: message
+        }
       ],
       model: "llama-3.1-8b-instant",
       temperature: 0.7,
       max_tokens: 700
     });
 
-    const reply = completion.choices?.[0]?.message?.content?.trim() || "I didn't catch that.";
+    const reply =
+      completion.choices?.[0]?.message?.content?.trim() ||
+      "I didn't catch that.";
 
-    // Update history
-    currentHistory.push({ role: "user", content: message });
-    currentHistory.push({ role: "assistant", content: reply });
+    // 🔥 Update memory properly
+    history.push({ role: "user", content: message });
+    history.push({ role: "assistant", content: reply });
 
-    if (currentHistory.length > 15) {
-      currentHistory = currentHistory.slice(-15);
+    // keep memory small
+    if (history.length > 15) {
+      history = history.slice(-15);
     }
 
-    history = currentHistory;
-    saveHistory();   // ← This saves to file persistently
+    // save to file
+    saveHistory();
 
     res.json({ reply });
 
   } catch (err) {
-    console.error("Error:", err.message);
-    res.json({ reply: "Donna had a moment. Try again in a few seconds." });
+    console.error("Error:", err);
+    res.json({ reply: "Donna had a moment. Try again." });
   }
 });
 
