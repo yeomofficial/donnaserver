@@ -1,10 +1,18 @@
 const express = require("express");
 const { Groq } = require("groq-sdk");
-const fs = require("fs");
-const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 10000;
+
+const admin = require("firebase-admin");
+
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const db = admin.firestore();
 
 app.use(express.json());
 
@@ -17,38 +25,24 @@ app.use((req, res, next) => {
 });
 
 // Simple file-based memory (persistent on Render)
-const MEMORY_FILE = path.join(__dirname, "chat-history.json");
-
 let history = [];
-
-// Load memory
-function loadHistory() {
-  try {
-    if (fs.existsSync(MEMORY_FILE)) {
-      history = JSON.parse(fs.readFileSync(MEMORY_FILE, "utf8"));
-      console.log("✅ Memory loaded");
-    }
-  } catch (e) {
-    console.log("No memory file yet");
-  }
-}
-
-// Save memory
-function saveHistory() {
-  try {
-    fs.writeFileSync(MEMORY_FILE, JSON.stringify(history, null, 2));
-  } catch (e) {
-    console.error("Save failed", e);
-  }
-}
-
-loadHistory();
 
 // Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Chat Route
 app.post("/api/chat", async (req, res) => {
+  const userId = "sanjay";
+
+const docRef = db.collection("users").doc(userId);
+const docSnap = await docRef.get();
+
+let history = [];
+
+if (docSnap.exists) {
+  history = docSnap.data().history || [];
+}
+  
   const { message } = req.body;
 
   if (!message) return res.json({ reply: "Say something first." });
@@ -108,8 +102,9 @@ You are Donna.`
       history = history.slice(-15);
     }
 
-    // save to file
-    saveHistory();
+    await db.collection("users").doc(userId).set({
+  history
+});
 
     res.json({ reply });
 
