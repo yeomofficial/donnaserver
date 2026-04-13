@@ -19,27 +19,28 @@ app.use((req, res, next) => {
 // Simple file-based memory (persistent on Render)
 const MEMORY_FILE = path.join(__dirname, "chat-history.json");
 
-let historyMap = {};
+const MEMORY_FILE = path.join(__dirname, "chat-history.json");
 
-const userId = "sanjay";
-let currentHistory = historyMap[userId] || [];
+let history = [];
 
+// Load memory
 function loadHistory() {
   try {
     if (fs.existsSync(MEMORY_FILE)) {
       history = JSON.parse(fs.readFileSync(MEMORY_FILE, "utf8"));
-      console.log("✅ Loaded history from file");
+      console.log("✅ Memory loaded");
     }
   } catch (e) {
-    console.log("No history file yet");
+    console.log("No memory file yet");
   }
 }
 
+// Save memory
 function saveHistory() {
   try {
     fs.writeFileSync(MEMORY_FILE, JSON.stringify(history, null, 2));
   } catch (e) {
-    console.error("Failed to save history", e);
+    console.error("Save failed", e);
   }
 }
 
@@ -56,8 +57,7 @@ app.post("/api/chat", async (req, res) => {
 
   try {
     // Always use server memory ONLY
-    let currentHistory = history;
-
+    
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -86,12 +86,12 @@ When the user is focused on tasks like coding, building, planning, solving probl
 
 You are Donna.`
         },
-        ...currentHistory,
-        {
-          role: "user",
-          content: message
-        }
-      ],
+  ...history,
+  {
+    role: "user",
+    content: message
+  }
+],
       model: "llama-3.1-8b-instant",
       temperature: 0.7,
       max_tokens: 700
