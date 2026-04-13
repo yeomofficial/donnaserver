@@ -30,6 +30,40 @@ let history = [];
 // Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+async function extractMemory(message) {
+  const prompt = `
+You are a memory system for an AI assistant.
+
+Decide if this message contains important long-term information about the user.
+
+Return ONLY JSON:
+
+{
+  "save": true/false,
+  "memory": "short factual sentence or empty"
+}
+
+Rules:
+- Save only important facts (goals, identity, projects, preferences)
+- Ignore casual chat, jokes, greetings
+
+Message:
+${message}
+`;
+
+  const result = await groq.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    model: "llama-3.1-8b-instant",
+    temperature: 0.2,
+  });
+
+  try {
+    return JSON.parse(result.choices[0].message.content);
+  } catch {
+    return { save: false };
+  }
+}
+
 // Chat Route
 app.post("/api/chat", async (req, res) => {
   const userId = "sanjay";
@@ -92,11 +126,33 @@ You are Donna.`
     const reply =
       completion.choices?.[0]?.message?.content?.trim() ||
       "I didn't catch that.";
-
+    
     // 🔥 UPDATE MEMORY
     history.push({ role: "user", content: message });
     history.push({ role: "assistant", content: reply });
 
+    const memoryResult = await extractMemory(message);
+
+if (memoryResult.save && memoryResult.memory) {
+  const docRef = db.collection("users").doc(userId);
+  const docSnap = await docRef.get();
+
+  let data = docSnap.exists ? docSnap.data() : {};
+  let memory = data.memory || [];
+
+  memory.push(memoryResult.memory);
+
+  if (memory.length > 30) {
+    memory = memory.slice(-30);
+  }
+
+  await db.collection("users").doc(userId).set({
+    ...data,
+    memory,
+    history
+  });
+}
+    
     if (history.length > 15) {
       history = history.slice(-15);
     }
