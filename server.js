@@ -43,37 +43,32 @@ const groq = new Groq({
 });
 
 // 🔥 Chat Route
-// 🔥 Chat Route - FIXED
 app.post("/api/chat", async (req, res) => {
-  const { message, history: clientHistory = [] } = req.body;  // ← Accept history from frontend
+  const { message, history: clientHistory = [] } = req.body;
 
   if (!message) {
-    return res.json({ reply: "Say something first." });
+    return res.json({ reply: "Please say something." });
   }
 
   if (!db) {
-    return res.json({ reply: "Memory system offline. Try again later." });
+    return res.json({ reply: "Database is offline. Try again later." });
   }
 
   try {
-    const userId = "sanjay";
+    const userId = "sanjay";   // Change this later if you add real user auth
 
-    // Load previous history from Firebase (as backup)
     const docRef = db.collection("users").doc(userId);
     const docSnap = await docRef.get();
-    let history = docSnap.exists ? (docSnap.data().history || []) : [];
 
-    // Prefer history sent from client (more reliable for this session)
-    if (clientHistory && clientHistory.length > 0) {
-      history = clientHistory;
-    }
+    // Load history: prefer from client, fallback to Firestore
+    let history = clientHistory.length > 0 ? clientHistory : (docSnap.exists ? (docSnap.data().history || []) : []);
 
-    // Send to Groq with full context
+    // Send full context to Groq
     const completion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
-          content: `You are Donna...`  // keep your full system prompt here
+          content: `You are Donna...`   // ← paste your full Donna system prompt here
         },
         ...history,
         { role: "user", content: message }
@@ -84,27 +79,25 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const reply = completion.choices?.[0]?.message?.content?.trim() 
-      || "I didn't catch that. Could you say it again?";
+      || "Sorry, I didn't get that. Can you rephrase?";
 
     // Update history
     history.push({ role: "user", content: message });
     history.push({ role: "assistant", content: reply });
 
-    // Keep last 20 messages only
-    if (history.length > 20) {
-      history = history.slice(-20);
+    // Keep only the last 20–30 messages (prevents token limits and high costs)
+    if (history.length > 25) {
+      history = history.slice(-25);
     }
 
-    // Save back to Firebase
-    await docRef.set({ history });
+    // Save updated history back to Firebase
+    await docRef.set({ history }, { merge: true });
 
     res.json({ reply });
 
   } catch (err) {
-    console.error("Chat error:", err.message);
-    res.json({ 
-      reply: "Donna had a moment. The server might be waking up — try again in a few seconds." 
-    });
+    console.error("Chat error:", err);
+    res.json({ reply: "Donna had an issue. Please try again in a few seconds." });
   }
 });
 
