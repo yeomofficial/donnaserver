@@ -16,13 +16,26 @@ app.use((req, res, next) => {
 });
 
 // 🔥 Firebase Init (from ENV)
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+let db;
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+try {
+  if (!process.env.FIREBASE_KEY) {
+    throw new Error("FIREBASE_KEY is missing");
+  }
 
-const db = admin.firestore();
+  const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+
+  db = admin.firestore();
+
+  console.log("✅ Firebase connected");
+
+} catch (err) {
+  console.error("❌ Firebase init error:", err.message);
+}
 
 // 🔥 Groq Init
 const groq = new Groq({
@@ -35,6 +48,10 @@ app.post("/api/chat", async (req, res) => {
 
   if (!message) {
     return res.json({ reply: "Say something first." });
+  }
+
+  if (!db) {
+  return res.json({ reply: "Memory system offline. Try again later." });
   }
 
   try {
