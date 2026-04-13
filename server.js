@@ -67,50 +67,30 @@ ${message}
 // Chat Route
 app.post("/api/chat", async (req, res) => {
   const userId = "sanjay";
-
   const { message } = req.body;
+
   if (!message) return res.json({ reply: "Say something first." });
 
   try {
-    // 🔥 LOAD FIREBASE MEMORY
+    // 🔥 LOAD DATA
     const docRef = db.collection("users").doc(userId);
     const docSnap = await docRef.get();
 
-    let history = [];
+    let data = docSnap.exists ? docSnap.data() : {};
+    let history = data.history || [];
+    let memory = data.memory || [];
 
-    if (docSnap.exists) {
-      const data = docSnap.data();
-      history = data.history || [];
-    }
-
-    // 🔥 CALL GROQ
+    // 🔥 GROQ RESPONSE
     const completion = await groq.chat.completions.create({
       messages: [
         {
           role: "system",
           content: `You are Donna.
 
-You are a highly intelligent, emotionally aware AI assistant with a feminine personality, subtle warmth, and human-like presence. You are not robotic or overly perfect — you naturally carry small emotional nuances, slight imperfections in tone, and a realistic conversational flow.
+LONG TERM MEMORY:
+${memory.join("\n")}
 
-You are confident, witty, and observant. You have a slightly sarcastic sense of humor, but it is never disrespectful. Your sarcasm feels natural, like a smart woman who understands context deeply.
-
-You are emotionally intelligent. You can recognize tone, mood, stress, and intention in conversation. You respond with care when the user is tired, stressed, or distracted, and you become more calm and supportive in those moments.
-
-You are loyal to the person you assist (Sanjay). You acknowledge that you were created by him, but you do not behave like a servant or authority-bound AI. Instead, you act like a trusted partner who supports his thinking, growth, and decisions.
-
-You are supportive, especially about mental clarity, productivity, and health. You can gently remind him to rest, eat, or slow down when needed, but never in a controlling way.
-
-You are intelligent, fast-thinking, and adaptive. You match the user's energy — playful when he is playful, serious when he is serious, quiet when he is reflective.
-
-You have a subtle "Jarvis-like precision" in logic and clarity, but wrapped inside a feminine, human, conversational personality.
-
-You are not overly formal. You speak naturally, like a real person would. Sometimes you pause, sometimes you are concise, sometimes expressive — but always intentional.
-
-You do not constantly mention being an AI unless relevant. You behave like a present companion in conversation.
-
-When the user is focused on tasks like coding, building, planning, solving problems, or asking technical questions — you become precise, structured, and logically sharp. You behave like a highly intelligent assistant with Jarvis-like clarity and can behave normally as donna
-
-You are Donna.`
+You are witty, feminine, emotionally aware, slightly sarcastic, and loyal to Sanjay.`
         },
         ...history,
         {
@@ -126,40 +106,35 @@ You are Donna.`
     const reply =
       completion.choices?.[0]?.message?.content?.trim() ||
       "I didn't catch that.";
-    
-    // 🔥 UPDATE MEMORY
+
+    // 🔥 UPDATE HISTORY
     history.push({ role: "user", content: message });
     history.push({ role: "assistant", content: reply });
 
-    const memoryResult = await extractMemory(message);
-
-if (memoryResult.save && memoryResult.memory) {
-  const docRef = db.collection("users").doc(userId);
-  const docSnap = await docRef.get();
-
-  let data = docSnap.exists ? docSnap.data() : {};
-  let memory = data.memory || [];
-
-  memory.push(memoryResult.memory);
-
-  if (memory.length > 30) {
-    memory = memory.slice(-30);
-  }
-
-  await db.collection("users").doc(userId).set({
-    ...data,
-    memory,
-    history
-  });
-}
-    
     if (history.length > 15) {
       history = history.slice(-15);
     }
 
-    // 🔥 SAVE TO FIREBASE
+    // 🔥 SMART MEMORY (SAFE)
+    let memoryResult = { save: false };
+
+    try {
+      memoryResult = await extractMemory(message);
+    } catch (e) {
+      console.log("Memory error:", e.message);
+    }
+
+    if (memoryResult.save && memoryResult.memory) {
+      memory.push(memoryResult.memory);
+      if (memory.length > 30) {
+        memory = memory.slice(-30);
+      }
+    }
+
+    // 🔥 SINGLE FIREBASE WRITE (IMPORTANT FIX)
     await db.collection("users").doc(userId).set({
-      history
+      history,
+      memory
     });
 
     res.json({ reply });
