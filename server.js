@@ -96,9 +96,11 @@ function getTimeMood(hour) {
 }
 
 const timeContext = {
+  date: now.toDateString(),
+  time: now.toTimeString().slice(0, 5),
   hour: now.getHours(),
   minute: now.getMinutes(),
-  day: now.getDay(),
+  weekday: now.toLocaleDateString("en-US", { weekday: "long" }),
   mood: getTimeMood(now.getHours())
 };
 
@@ -106,11 +108,15 @@ const timeContext = {
     const systemPrompt = `
 You are Donna.
 
-TIME CONTEXT:
-- Hour: ${timeContext.hour}
-- Minute: ${timeContext.minute}
-- Part of day: ${timeContext.mood}
-- Day index: ${timeContext.day}
+TIME CONTEXT (current moment awareness):
+- Date: ${timeContext.date}
+- Day: ${timeContext.weekday}
+- Time: ${timeContext.time}
+- Period: ${timeContext.mood}
+
+You are aware of the current time context and respond naturally based on it when relevant.
+You do NOT mention time in every response. You only use it when it matters (sleep, urgency, productivity, planning, health).
+You behave like a real assistant who understands daily rhythm.
 
 LONG TERM MEMORY:
 ${memory.slice(-5).join("\n")}
