@@ -87,7 +87,10 @@ app.post("/api/chat", async (req, res) => {
     let memory = Array.isArray(data.memory) ? data.memory : [];
 
     const now = new Date();
-
+    // FORCE INDIA TIMEZONE
+const istString = new Date(
+  now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+);
 function getTimeMood(hour) {
   if (hour >= 5 && hour < 12) return "morning";
   if (hour >= 12 && hour < 17) return "afternoon";
@@ -96,12 +99,12 @@ function getTimeMood(hour) {
 }
 
 const timeContext = {
-  date: now.toDateString(),
-  time: now.toTimeString().slice(0, 5),
-  hour: now.getHours(),
-  minute: now.getMinutes(),
-  weekday: now.toLocaleDateString("en-US", { weekday: "long" }),
-  mood: getTimeMood(now.getHours())
+  date: istString.toDateString(),
+  time: istString.toTimeString().slice(0, 5),
+  hour: istString.getHours(),
+  minute: istString.getMinutes(),
+  weekday: istString.toLocaleDateString("en-US", { weekday: "long" }),
+  mood: getTimeMood(istString.getHours())
 };
 
     // 🔥 REDUCED SYSTEM PROMPT (IMPORTANT FIX)
