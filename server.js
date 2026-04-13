@@ -19,8 +19,6 @@ app.use((req, res, next) => {
 // Simple file-based memory (persistent on Render)
 const MEMORY_FILE = path.join(__dirname, "chat-history.json");
 
-const MEMORY_FILE = path.join(__dirname, "chat-history.json");
-
 let history = [];
 
 // Load memory
