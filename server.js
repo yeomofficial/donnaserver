@@ -86,12 +86,31 @@ app.post("/api/chat", async (req, res) => {
     let history = Array.isArray(data.history) ? data.history : [];
     let memory = Array.isArray(data.memory) ? data.memory : [];
 
-    console.log("2️⃣ History:", history.length);
-    console.log("3️⃣ Memory:", memory.length);
+    const now = new Date();
+
+function getTimeMood(hour) {
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 17) return "afternoon";
+  if (hour >= 17 && hour < 21) return "evening";
+  return "night";
+}
+
+const timeContext = {
+  hour: now.getHours(),
+  minute: now.getMinutes(),
+  day: now.getDay(),
+  mood: getTimeMood(now.getHours())
+};
 
     // 🔥 REDUCED SYSTEM PROMPT (IMPORTANT FIX)
     const systemPrompt = `
 You are Donna.
+
+TIME CONTEXT:
+- Hour: ${timeContext.hour}
+- Minute: ${timeContext.minute}
+- Part of day: ${timeContext.mood}
+- Day index: ${timeContext.day}
 
 LONG TERM MEMORY:
 ${memory.slice(-5).join("\n")}
