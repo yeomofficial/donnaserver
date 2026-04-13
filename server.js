@@ -31,35 +31,43 @@ let history = [];
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 async function extractMemory(message) {
-  const prompt = `
-You are a memory system for an AI assistant.
-
-Decide if this message contains important long-term information about the user.
-
-Return ONLY JSON:
-
-{
-  "save": true/false,
-  "memory": "short factual sentence or empty"
-}
-
-Rules:
-- Save only important facts (goals, identity, projects, preferences)
-- Ignore casual chat, jokes, greetings
+  try {
+    const prompt = `
+Return ONLY valid JSON. No explanation. No markdown.
 
 Message:
 ${message}
+
+Format:
+{
+  "save": true,
+  "memory": "short factual sentence or empty"
+}
 `;
 
-  const result = await groq.chat.completions.create({
-    messages: [{ role: "user", content: prompt }],
-    model: "llama-3.1-8b-instant",
-    temperature: 0.2,
-  });
+    const result = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.2,
+    });
 
-  try {
-    return JSON.parse(result.choices[0].message.content);
-  } catch {
+    let text = result.choices?.[0]?.message?.content || "";
+
+    // 🔥 HARD CLEAN (IMPORTANT)
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    // 🔥 EXTRA SAFETY CHECK
+    if (!text.includes("{") || !text.includes("}")) {
+      return { save: false };
+    }
+
+    return JSON.parse(text);
+
+  } catch (err) {
+    console.log("Memory extraction failed:", err.message);
     return { save: false };
   }
 }
