@@ -16,22 +16,22 @@ app.use((req, res, next) => {
 });
 
 // 🔥 Firebase Init (from ENV)
-let db;
+let db = null;
 
 try {
   if (!process.env.FIREBASE_KEY) {
     throw new Error("FIREBASE_KEY is missing");
   }
 
-  const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+  //const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+//  admin.initializeApp({
+//    credential: admin.credential.cert(serviceAccount)
+//  });
 
-  db = admin.firestore();
+//  db = admin.firestore();
 
-  console.log("✅ Firebase connected");
+//  console.log("✅ Firebase connected");
 
 } catch (err) {
   console.error("❌ Firebase init error:", err.message);
