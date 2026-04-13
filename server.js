@@ -18,7 +18,7 @@ const groq = new Groq({
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+  const { message, history = [] } = req.body;
 
   if (!message) {
     return res.json({ reply: "Say something first." });
@@ -26,19 +26,15 @@ app.post("/api/chat", async (req, res) => {
 
   try {
     const completion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Donna. Confident, emotionally intelligent, witty, slightly sarcastic, loyal to Sanjay."
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ],
-      model: "llama-3.1-8b-instant",
-    });
+  messages: [
+    {
+      role: "system",
+      content: "You are Donna. Confident, emotionally intelligent, witty, slightly sarcastic, loyal to Sanjay."
+    },
+    ...history
+  ],
+  model: "llama-3.1-8b-instant",
+});
 
     const reply =
       completion.choices?.[0]?.message?.content || "No response";
