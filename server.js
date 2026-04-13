@@ -86,8 +86,8 @@ app.post("/api/chat", async (req, res) => {
     history.push({ role: "assistant", content: reply });
 
     // Keep only the last 20–30 messages (prevents token limits and high costs)
-    if (history.length > 25) {
-      history = history.slice(-25);
+    if (history.length > 10) {          // ← start with 10
+  history = history.slice(-10);
     }
 
     // Save updated history back to Firebase
@@ -156,13 +156,22 @@ You remain composed under pressure and maintain a balance between professionalis
     });
 
     // ✅ Send response
-    res.json({ reply });
+    } catch (err) {
+  console.error("Full Groq error:", err);   // Check Render Logs for this
 
-  } catch (err) {
-    console.error("Error:", err);
-    res.json({ reply: "Donna had a moment. Try again." });
+  let userMessage = "Donna had a moment. Try again.";
+
+  if (err.message?.includes("429") || err.status === 429) {
+    userMessage = "Rate limit reached. Wait 10–20 seconds and try again.";
+  } else if (err.message?.includes("context") || err.message?.includes("token")) {
+    userMessage = "Conversation too long. Starting fresh...";
+    history = [];   // reset history on backend if needed
+  } else if (err.message?.includes("API key")) {
+    userMessage = "API key issue. Check GROQ_API_KEY on Render.";
   }
-});
+
+  res.json({ reply: userMessage });
+    }
 
 // 🚀 Start server
 app.listen(port, "0.0.0.0", () => {
