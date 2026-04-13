@@ -34,22 +34,22 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 app.post("/api/chat", async (req, res) => {
   const userId = "sanjay";
 
-const docRef = db.collection("users").doc(userId);
-const docSnap = await docRef.get();
-
-let history = [];
-
-if (docSnap.exists) {
-  history = docSnap.data().history || [];
-}
-  
   const { message } = req.body;
-
   if (!message) return res.json({ reply: "Say something first." });
 
   try {
-    // Always use server memory ONLY
-    
+    // 🔥 LOAD FIREBASE MEMORY
+    const docRef = db.collection("users").doc(userId);
+    const docSnap = await docRef.get();
+
+    let history = [];
+
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      history = data.history || [];
+    }
+
+    // 🔥 CALL GROQ
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -78,12 +78,12 @@ When the user is focused on tasks like coding, building, planning, solving probl
 
 You are Donna.`
         },
-  ...history,
-  {
-    role: "user",
-    content: message
-  }
-],
+        ...history,
+        {
+          role: "user",
+          content: message
+        }
+      ],
       model: "llama-3.1-8b-instant",
       temperature: 0.7,
       max_tokens: 700
@@ -93,18 +93,18 @@ You are Donna.`
       completion.choices?.[0]?.message?.content?.trim() ||
       "I didn't catch that.";
 
-    // 🔥 Update memory properly
+    // 🔥 UPDATE MEMORY
     history.push({ role: "user", content: message });
     history.push({ role: "assistant", content: reply });
 
-    // keep memory small
     if (history.length > 15) {
       history = history.slice(-15);
     }
 
+    // 🔥 SAVE TO FIREBASE
     await db.collection("users").doc(userId).set({
-  history
-});
+      history
+    });
 
     res.json({ reply });
 
