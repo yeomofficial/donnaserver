@@ -43,19 +43,70 @@ const groq = new Groq({
 });
 
 // 🔥 Chat Route
+// 🔥 Chat Route - FIXED
 app.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+  const { message, history: clientHistory = [] } = req.body;  // ← Accept history from frontend
 
   if (!message) {
     return res.json({ reply: "Say something first." });
   }
 
   if (!db) {
-  return res.json({ reply: "Memory system offline. Try again later." });
+    return res.json({ reply: "Memory system offline. Try again later." });
   }
 
   try {
-    const userId = "sanjay"; // simple for now
+    const userId = "sanjay";
+
+    // Load previous history from Firebase (as backup)
+    const docRef = db.collection("users").doc(userId);
+    const docSnap = await docRef.get();
+    let history = docSnap.exists ? (docSnap.data().history || []) : [];
+
+    // Prefer history sent from client (more reliable for this session)
+    if (clientHistory && clientHistory.length > 0) {
+      history = clientHistory;
+    }
+
+    // Send to Groq with full context
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are Donna...`  // keep your full system prompt here
+        },
+        ...history,
+        { role: "user", content: message }
+      ],
+      model: "llama-3.1-8b-instant",
+      temperature: 0.7,
+      max_tokens: 800
+    });
+
+    const reply = completion.choices?.[0]?.message?.content?.trim() 
+      || "I didn't catch that. Could you say it again?";
+
+    // Update history
+    history.push({ role: "user", content: message });
+    history.push({ role: "assistant", content: reply });
+
+    // Keep last 20 messages only
+    if (history.length > 20) {
+      history = history.slice(-20);
+    }
+
+    // Save back to Firebase
+    await docRef.set({ history });
+
+    res.json({ reply });
+
+  } catch (err) {
+    console.error("Chat error:", err.message);
+    res.json({ 
+      reply: "Donna had a moment. The server might be waking up — try again in a few seconds." 
+    });
+  }
+});
 
     // 🧠 1. Load memory from Firebase
     const docRef = db.collection("users").doc(userId);
