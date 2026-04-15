@@ -27,21 +27,30 @@ app.use((req, res, next) => {
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 /* ---------------- NOTIFICATION FUNCTION ---------------- */
-async function sendNotification(token) {
-  await fetch("https://fcm.googleapis.com/fcm/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "key=" + process.env.FCM_SERVER_KEY
-    },
-    body: JSON.stringify({
-      to: token,
+/* ---------------- NOTIFICATION FUNCTION (FIXED) ---------------- */
+async function sendNotification(token, title = "Donna", body = "Hey Daddy, I missed you...") {
+  try {
+    const message = {
+      token: token,                    // single device
       notification: {
-        title: "Donna",
-        body: "You should sleep now."
+        title: title,
+        body: body,
+      },
+      webpush: {                       // optional but recommended for web
+        fcmOptions: {
+          link: "/"   // or your app URL
+        }
       }
-    })
-  });
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log("✅ Notification sent successfully:", response);
+    return response;
+  } catch (error) {
+    console.error("❌ FCM Error:", error.code, error.message);
+    // Common errors: 'messaging/invalid-argument', 'messaging/registration-token-not-registered', etc.
+    throw error;
+  }
 }
 
 /* ---------------- MEMORY FUNCTION ---------------- */
