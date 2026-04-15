@@ -169,8 +169,10 @@ You are Donna.
       "I didn't catch that.";
 
     // 🔥 TEST NOTIFICATION
-if (message === "test notify") {
-  const token = data.fcmToken;
+
+    if (message === "test notify") {
+  const freshDoc = await db.collection("users").doc(userId).get();
+  const token = freshDoc.data()?.fcmToken;
 
   if (token) {
     console.log("📲 Sending test notification...");
@@ -178,7 +180,7 @@ if (message === "test notify") {
   } else {
     console.log("❌ No token found");
   }
-}
+    }
 
     // 🔥 UPDATE HISTORY
     history.push({ role: "user", content: message });
@@ -203,9 +205,9 @@ if (message === "test notify") {
     }
 
     await db.collection("users").doc(userId).set({
-      history,
-      memory,
-    });
+  history,
+  memory,
+}, { merge: true });
 
     console.log("✅ Done");
 
