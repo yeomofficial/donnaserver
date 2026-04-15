@@ -26,6 +26,24 @@ app.use((req, res, next) => {
 // Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+/* ---------------- NOTIFICATION FUNCTION ---------------- */
+async function sendNotification(token) {
+  await fetch("https://fcm.googleapis.com/fcm/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "key=" + process.env.FCM_SERVER_KEY
+    },
+    body: JSON.stringify({
+      to: token,
+      notification: {
+        title: "Donna",
+        body: "You should sleep now."
+      }
+    })
+  });
+}
+
 /* ---------------- MEMORY FUNCTION ---------------- */
 async function extractMemory(message) {
   try {
@@ -71,8 +89,6 @@ ${message}
 app.post("/api/chat", async (req, res) => {
   const userId = "sanjay";
   const { message } = req.body;
-
-  console.log("📩 Incoming message:", message);
 
   if (!message) return res.json({ reply: "Say something first." });
 
@@ -152,6 +168,18 @@ You are Donna.
       completion.choices?.[0]?.message?.content?.trim() ||
       "I didn't catch that.";
 
+    // 🔥 TEST NOTIFICATION
+if (message === "test notify") {
+  const token = data.fcmToken;
+
+  if (token) {
+    console.log("📲 Sending test notification...");
+    await sendNotification(token);
+  } else {
+    console.log("❌ No token found");
+  }
+}
+
     // 🔥 UPDATE HISTORY
     history.push({ role: "user", content: message });
     history.push({ role: "assistant", content: reply });
@@ -174,8 +202,6 @@ You are Donna.
       console.log("🧠 Memory saved:", memoryResult.memory);
     }
 
-    console.log("7️⃣ Saving to Firebase");
-
     await db.collection("users").doc(userId).set({
       history,
       memory,
@@ -188,6 +214,17 @@ You are Donna.
     console.error("🔥 FULL ERROR:", err);
     res.json({ reply: "Donna had a moment. Try again." });
   }
+});
+
+/* ---------------- SAVE TOKEN ROUTE ---------------- */
+app.post("/save-token", async (req, res) => {
+  const { token } = req.body;
+
+  await db.collection("users").doc("sanjay").set({
+    fcmToken: token
+  }, { merge: true });
+
+  res.sendStatus(200);
 });
 
 /* ---------------- START SERVER ---------------- */
