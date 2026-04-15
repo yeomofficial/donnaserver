@@ -200,17 +200,31 @@ You are Donna.
 
     // 🔥 TEST NOTIFICATION
 
-    if (message === "test notify") {
-  const freshDoc = await db.collection("users").doc(userId).get();
-  const token = freshDoc.data()?.fcmToken;
+    // 🔥 NOTIFICATION TRIGGER (improved)
+    if (message.toLowerCase().includes("test notify") || 
+        message.toLowerCase().includes("send notification") || 
+        message.toLowerCase().includes("notify me")) {
+      
+      const freshDoc = await db.collection("users").doc(userId).get();
+      const token = freshDoc.data()?.fcmToken;
 
-  if (token) {
-    console.log("📲 Sending test notification...");
-    await sendNotification(token);
-  } else {
-    console.log("❌ No token found");
-  }
+      if (token) {
+        alert(`📲 Triggered notification for message: "${message}"`);
+        try {
+          await sendNotification(
+            token, 
+            "Donna", 
+            "Hey Daddy... I was thinking about you 😏"
+          );
+          alert("✅ Notification trigger executed");
+        } catch (notifyErr) {
+          console.error("Notification trigger failed:", notifyErr.code || notifyErr.message);
+        }
+      } else {
+        alert("❌ No FCM token found in Firestore");
+      }
     }
+    
 
     // 🔥 UPDATE HISTORY
     history.push({ role: "user", content: message });
