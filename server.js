@@ -27,29 +27,50 @@ app.use((req, res, next) => {
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 /* ---------------- NOTIFICATION FUNCTION ---------------- */
-/* ---------------- NOTIFICATION FUNCTION (FIXED) ---------------- */
-async function sendNotification(token, title = "Donna", body = "Hey Daddy, I missed you...") {
+
+/* ---------------- FIXED NOTIFICATION FUNCTION ---------------- */
+async function sendNotification(token, title = "Donna", body = "Hey, I missed you...") {
+  if (!token) {
+    console.error("❌ No FCM token provided");
+    return;
+  }
+
   try {
     const message = {
-      token: token,                    // single device
+      token: token,
       notification: {
         title: title,
         body: body,
       },
-      webpush: {                       // optional but recommended for web
+      webpush: {
         fcmOptions: {
-          link: "/"   // or your app URL
+          link: "/"  // Change to your actual app URL if you want clicking the notification to open the page
+        },
+        headers: {
+          Urgency: "high"  // Optional: makes it more likely to show immediately
         }
       }
     };
 
     const response = await admin.messaging().send(message);
-    console.log("✅ Notification sent successfully:", response);
+    console.log("✅ Notification sent successfully! Message ID:", response);
     return response;
   } catch (error) {
-    console.error("❌ FCM Error:", error.code, error.message);
-    // Common errors: 'messaging/invalid-argument', 'messaging/registration-token-not-registered', etc.
-    throw error;
+    console.error("❌ FCM Send Error:");
+    console.error("Code:", error.code);
+    console.error("Message:", error.message);
+    console.error("Full error:", error);
+
+    // Common errors and what they mean:
+    if (error.code === 'messaging/registration-token-not-registered') {
+      console.error("→ Token is invalid or expired. User needs to re-visit the page to get a new token.");
+    } else if (error.code === 'messaging/invalid-argument') {
+      console.error("→ Something wrong with the message format or token.");
+    } else if (error.code === 'messaging/unauthorized') {
+      console.error("→ Service account permissions issue. Check Firebase Console > Cloud Messaging.");
+    }
+
+    throw error;  // re-throw so you see it in the chat route too
   }
 }
 
