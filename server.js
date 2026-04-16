@@ -268,18 +268,12 @@ app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${port}`);
 });
 
-// APP NOTIFICATION
+// CORN NOTIFICATION
+
 cron.schedule("* * * * *", async () => {
-  console.log("⏰ Running test cron every minute");
-
-  const doc = await db.collection("users").doc("sanjay").get();
-  const token = doc.data()?.fcmToken;
-
-  if (token) {
-    await sendNotification(
-      token,
-      "Donna Test",
-      "Cron is working 🔥"
-    );
-  }
+  try {
+    await db.collection("debug").doc("cron").set({
+      lastRun: new Date().toISOString()
+    });
+  } catch (err) {}
 });
