@@ -267,3 +267,19 @@ app.post("/save-token", async (req, res) => {
 app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${port}`);
 });
+
+// APP NOTIFICATION
+cron.schedule("* * * * *", async () => {
+  console.log("⏰ Running test cron every minute");
+
+  const doc = await db.collection("users").doc("sanjay").get();
+  const token = doc.data()?.fcmToken;
+
+  if (token) {
+    await sendNotification(
+      token,
+      "Donna Test",
+      "Cron is working 🔥"
+    );
+  }
+});
