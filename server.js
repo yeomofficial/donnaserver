@@ -41,14 +41,6 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
       notification: {
         title: title,
         body: body,
-      },
-      webpush: {
-        fcmOptions: {
-          link: "/"  // Change to your actual app URL if you want clicking the notification to open the page
-        },
-        headers: {
-          Urgency: "high"  // Optional: makes it more likely to show immediately
-        }
       }
     };
 
@@ -59,18 +51,16 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
     console.error("❌ FCM Send Error:");
     console.error("Code:", error.code);
     console.error("Message:", error.message);
-    console.error("Full error:", error);
-
-    // Common errors and what they mean:
+    
     if (error.code === 'messaging/registration-token-not-registered') {
-      console.error("→ Token is invalid or expired. User needs to re-visit the page to get a new token.");
-    } else if (error.code === 'messaging/invalid-argument') {
-      console.error("→ Something wrong with the message format or token.");
+      console.error("→ Token invalid/expired. Reload the frontend page to get a fresh token.");
     } else if (error.code === 'messaging/unauthorized') {
-      console.error("→ Service account permissions issue. Check Firebase Console > Cloud Messaging.");
+      console.error("→ Service account permission issue. Check Firebase Console > IAM & Admin.");
+    } else if (error.code === 'messaging/invalid-argument') {
+      console.error("→ Message format problem.");
     }
-
-    throw error;  // re-throw so you see it in the chat route too
+    
+    throw error;
   }
 }
 
@@ -209,19 +199,19 @@ You are Donna.
       const token = freshDoc.data()?.fcmToken;
 
       if (token) {
-        alert(`📲 Triggered notification for message: "${message}"`);
+        console.log(`📲 Triggered notification for message: "${message}"`);
         try {
           await sendNotification(
             token, 
             "Donna", 
             "Hey Daddy... I was thinking about you 😏"
           );
-          alert("✅ Notification trigger executed");
+          console.log("✅ Notification trigger executed");
         } catch (notifyErr) {
           console.error("Notification trigger failed:", notifyErr.code || notifyErr.message);
         }
       } else {
-        alert("❌ No FCM token found in Firestore");
+        console.log("❌ No FCM token found in Firestore");
       }
     }
     
