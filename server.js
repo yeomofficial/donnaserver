@@ -272,29 +272,32 @@ app.listen(port, "0.0.0.0", () => {
 // CORN NOTIFICATION
 
 cron.schedule("* * * * *", async () => {
-  console.log("⏰ Cron running every minute");
+  console.log("⏰ Cron running");
 
   try {
-    // 🔍 Get token
     const doc = await db.collection("users").doc("sanjay").get();
-    const token = doc.data()?.fcmToken;
+    const data = doc.data();
+
+    console.log("📦 Firestore data:", data);
+
+    const token = data?.fcmToken;
 
     if (!token) {
-      console.log("❌ No token found");
+      console.log("❌ No token found in Firestore");
       return;
     }
 
-    console.log("📲 Sending notification...");
+    console.log("📲 Token found:", token);
 
-    await sendNotification(
+    const res = await sendNotification(
       token,
       "Donna ⏰",
-      "This is your 1-minute test notification 🔥"
+      "Cron test notification 🔥"
     );
 
-    console.log("✅ Notification sent");
+    console.log("✅ Notification sent:", res);
 
   } catch (err) {
-    console.log("❌ Cron error:", err.message);
+    console.log("❌ Cron error:", err.code, err.message);
   }
 });
