@@ -272,9 +272,29 @@ app.listen(port, "0.0.0.0", () => {
 // CORN NOTIFICATION
 
 cron.schedule("* * * * *", async () => {
+  console.log("⏰ Cron running every minute");
+
   try {
-    await db.collection("debug").doc("cron").set({
-      lastRun: new Date().toISOString()
-    });
-  } catch (err) {}
+    // 🔍 Get token
+    const doc = await db.collection("users").doc("sanjay").get();
+    const token = doc.data()?.fcmToken;
+
+    if (!token) {
+      console.log("❌ No token found");
+      return;
+    }
+
+    console.log("📲 Sending notification...");
+
+    await sendNotification(
+      token,
+      "Donna ⏰",
+      "This is your 1-minute test notification 🔥"
+    );
+
+    console.log("✅ Notification sent");
+
+  } catch (err) {
+    console.log("❌ Cron error:", err.message);
+  }
 });
