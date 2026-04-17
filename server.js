@@ -38,12 +38,12 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
 
   try {
     const message = {
-      token: token,
-      notification: {
-        title: title,
-        body: body,
-      }
-    };
+  token: token,
+  data: {
+    title: title,
+    body: body,
+  }
+};
 
     const response = await admin.messaging().send(message);
     console.log("✅ Notification sent successfully! Message ID:", response);
