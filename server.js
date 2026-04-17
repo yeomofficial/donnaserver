@@ -39,7 +39,7 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
   try {
     const message = {
   token: token,
-  data: {
+  notification: {
     title: title,
     body: body,
   }
@@ -271,7 +271,7 @@ app.listen(port, "0.0.0.0", () => {
 
 // CORN NOTIFICATION
 
-cron.schedule("10 22 * * *", async () => {
+cron.schedule("30 22 * * *", async () => {
   console.log("🌙 9:20 PM trigger");
 
   try {
@@ -286,7 +286,7 @@ cron.schedule("10 22 * * *", async () => {
     const res = await sendNotification(
       token,
       "Donna 🌙",
-      "It’s 10:10 PM Boss. Time to sleep, you had a bad day today, lets not push yourself too far."
+      "It’s 10:30 PM Boss. Time to sleep, you had a bad day today, lets not push yourself too far."
     );
 
     console.log("✅ Notification sent:", res);
