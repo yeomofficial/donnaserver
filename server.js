@@ -278,24 +278,28 @@ cron.schedule("* * * * *", async () => {
     const doc = await db.collection("users").doc("sanjay").get();
     const data = doc.data();
 
-    console.log("📦 Firestore data:", data);
-
     const token = data?.fcmToken;
-
     if (!token) {
-      console.log("❌ No token found in Firestore");
+      console.log("❌ No token found");
       return;
     }
 
-    console.log("📲 Token found:", token);
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
 
-    const res = await sendNotification(
-      token,
-      "Donna ⏰",
-      "Cron test notification 🔥"
-    );
+    // 🔥 ONLY trigger at 9:00 PM
+    if (hour === 21 && minute === 0) {
+      console.log("🌙 Sending 9PM notification");
 
-    console.log("✅ Notification sent:", res);
+      const res = await sendNotification(
+        token,
+        "Donna",
+        "It’s 9PM Boss, I'll consider you take a rest today because you had a hard day today."
+      );
+
+      console.log("✅ Notification sent:", res);
+    }
 
   } catch (err) {
     console.log("❌ Cron error:", err.code, err.message);
