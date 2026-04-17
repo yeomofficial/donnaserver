@@ -271,41 +271,29 @@ app.listen(port, "0.0.0.0", () => {
 
 // CORN NOTIFICATION
 
-cron.schedule("* * * * *", async () => {
-  console.log("⏰ Cron running");
+cron.schedule("10 22 * * *", async () => {
+  console.log("🌙 9:20 PM trigger");
 
   try {
     const doc = await db.collection("users").doc("sanjay").get();
-    const data = doc.data();
+    const token = doc.data()?.fcmToken;
 
-    const token = data?.fcmToken;
     if (!token) {
       console.log("❌ No token found");
       return;
     }
 
-    const now = new Date();
-const ist = new Date(
-  now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-);
+    const res = await sendNotification(
+      token,
+      "Donna 🌙",
+      "It’s 10:10 PM Boss. Time to sleep, you had a bad day today, lets not push yourself too far."
+    );
 
-const hour = ist.getHours();
-const minute = ist.getMinutes();
-
-    // 🔥 ONLY trigger at 9:00 PM
-    if (hour === 21 && minute >= 45 && minute < 50) {
-      console.log("🌙 Sending 9PM notification");
-
-      const res = await sendNotification(
-        token,
-        "Donna",
-        "It’s 9:45 PM Boss, I'll consider you take a rest today because you had a hard day today."
-      );
-
-      console.log("✅ Notification sent:", res);
-    }
+    console.log("✅ Notification sent:", res);
 
   } catch (err) {
     console.log("❌ Cron error:", err.code, err.message);
   }
+}, {
+  timezone: "Asia/Kolkata"   // 🔥 VERY IMPORTANT
 });
