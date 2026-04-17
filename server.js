@@ -293,13 +293,13 @@ const hour = ist.getHours();
 const minute = ist.getMinutes();
 
     // 🔥 ONLY trigger at 9:00 PM
-    if (hour === 21 && minute >= 20 && minute < 22) {
+    if (hour === 21 && minute >= 45 && minute < 50) {
       console.log("🌙 Sending 9PM notification");
 
       const res = await sendNotification(
         token,
         "Donna",
-        "It’s 9:20 PM Boss, I'll consider you take a rest today because you had a hard day today."
+        "It’s 9:45 PM Boss, I'll consider you take a rest today because you had a hard day today."
       );
 
       console.log("✅ Notification sent:", res);
