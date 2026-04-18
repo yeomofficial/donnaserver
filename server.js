@@ -375,3 +375,64 @@ cron.schedule("0 13 * * *", async () => {
 }, {
   timezone: "Asia/Kolkata"
 });
+
+//----------------- BED TIME -------------------
+
+cron.schedule("55 23 * * *", async () => {
+  console.log("🌙 11:55 PM Sleep trigger");
+
+  try {
+    const userRef = db.collection("users").doc("sanjay");
+    const doc = await userRef.get();
+    const data = doc.data();
+
+    const token = data?.fcmToken;
+    if (!token) {
+      console.log("❌ No token found");
+      return;
+    }
+
+    const today = new Date().toDateString();
+
+    // 🔥 Prevent duplicate
+    if (data?.lastSleepNotif === today) {
+      console.log("⚠️ Sleep notif already sent today");
+      return;
+    }
+
+    // 🔥 Optional: skip if user active recently (not annoying)
+    const lastActive = data?.lastActive;
+    if (lastActive && (Date.now() - lastActive < 20 * 60 * 1000)) {
+      console.log("⚠️ User active recently, skipping sleep ping");
+      return;
+    }
+
+    // 🔥 Human-like messages (more intimate tone)
+    const messages = [
+      "It’s 11:55 PM… go sleep. I’m serious 😴",
+      "Enough for today. Sleep now, we continue tomorrow 🌙",
+      "You did enough today. Rest. I’ll be here.",
+      "Don’t ruin tomorrow by staying up tonight."
+    ];
+
+    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+
+    const res = await sendNotification(
+      token,
+      "Donna 🌙",
+      randomMsg
+    );
+
+    console.log("✅ Sleep notification sent:", res);
+
+    // 🔥 Save state
+    await userRef.set({
+      lastSleepNotif: today
+    }, { merge: true });
+
+  } catch (err) {
+    console.log("❌ Sleep cron error:", err.code, err.message);
+  }
+}, {
+  timezone: "Asia/Kolkata"
+});
