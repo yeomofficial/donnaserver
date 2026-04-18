@@ -16,6 +16,10 @@ const db = admin.firestore();
 
 app.use(express.json());
 
+app.get("/ping", (req, res) => {
+  res.send("awake");
+});
+
 // CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
@@ -39,7 +43,7 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
   try {
     const message = {
   token: token,
-  data: {
+  notification: {
     title: title,
     body: body,
   }
@@ -432,6 +436,59 @@ cron.schedule("55 23 * * *", async () => {
 
   } catch (err) {
     console.log("❌ Sleep cron error:", err.code, err.message);
+  }
+}, {
+  timezone: "Asia/Kolkata"
+});
+
+// ----------- TEA TIME -----------------------
+cron.schedule("45 16 * * *", async () => {
+  console.log("☕ 5PM Tea trigger");
+
+  try {
+    const userRef = db.collection("users").doc("sanjay");
+    const doc = await userRef.get();
+    const data = doc.data();
+
+    const token = data?.fcmToken;
+    if (!token) {
+      console.log("❌ No token found");
+      return;
+    }
+
+    const today = new Date().toDateString();
+
+    // 🔥 Prevent duplicate
+    if (data?.lastTeaNotif === today) {
+      console.log("⚠️ Tea already sent today");
+      return;
+    }
+
+    // 🔥 Human-like Donna tone
+    const messages = [
+      "Tea time ☕… go take a break",
+      "Pause. Sip something. You’ve earned it.",
+      "4:45 PM already… don’t forget your tea 👀",
+      "Get up. Stretch. Tea. Now."
+    ];
+
+    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+
+    const res = await sendNotification(
+      token,
+      "Donna ☕",
+      randomMsg
+    );
+
+    console.log("✅ Tea notification sent:", res);
+
+    // 🔥 Save state
+    await userRef.set({
+      lastTeaNotif: today
+    }, { merge: true });
+
+  } catch (err) {
+    console.log("❌ Tea cron error:", err.code, err.message);
   }
 }, {
   timezone: "Asia/Kolkata"
