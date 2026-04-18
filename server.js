@@ -324,7 +324,7 @@ cron.schedule("30 9 * * *", async () => {
 
 //--------LUNCH--------------------
 
-cron.schedule("0 13 * * *", async () => {
+cron.schedule("0 15 * * *", async () => {
   console.log("🍛 1PM Lunch trigger");
 
   try {
@@ -348,7 +348,7 @@ cron.schedule("0 13 * * *", async () => {
 
     // 🔥 Human-like variation
     const messages = [
-      "It’s 1PM Boss. Go eat properly 🍛",
+      "It’s 3PM Boss. Go eat properly 🍛",
       "Lunch time. Don’t skip it again 😒",
       "Pause. Eat. Then conquer the day 💪",
       "You’ve earned a break. Go have lunch 🍽️"
@@ -358,7 +358,7 @@ cron.schedule("0 13 * * *", async () => {
 
     const res = await sendNotification(
       token,
-      "Donna 🍛",
+      "Donna",
       randomMsg
     );
 
