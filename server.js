@@ -271,8 +271,8 @@ app.listen(port, "0.0.0.0", () => {
 
 // CORN NOTIFICATION
 
-cron.schedule("30 22 * * *", async () => {
-  console.log("🌙 9:20 PM trigger");
+cron.schedule("30 9 * * *", async () => {
+  console.log("🌙 9:30 AM trigger");
 
   try {
     const doc = await db.collection("users").doc("sanjay").get();
@@ -285,8 +285,8 @@ cron.schedule("30 22 * * *", async () => {
 
     const res = await sendNotification(
       token,
-      "Donna 🌙",
-      "It’s 10:30 PM Boss. Time to sleep, you had a bad day today, lets not push yourself too far."
+      "Donna",
+      "It’s 9:30 AM Boss. Time for Breakfast, I'll be waiting"
     );
 
     console.log("✅ Notification sent:", res);
