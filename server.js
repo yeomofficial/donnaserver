@@ -442,7 +442,7 @@ cron.schedule("55 23 * * *", async () => {
 });
 
 // ----------- TEA TIME -----------------------
-cron.schedule("45 16 * * *", async () => {
+cron.schedule("35 17 * * *", async () => {
   console.log("☕ 5PM Tea trigger");
 
   try {
