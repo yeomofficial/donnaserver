@@ -274,7 +274,6 @@ app.listen(port, "0.0.0.0", () => {
 });
 
 // CORN NOTIFICATION
-
 app.get("/breakfast", async (req, res) => {
   console.log("🍳 Breakfast endpoint hit");
 
@@ -290,33 +289,35 @@ app.get("/breakfast", async (req, res) => {
       return res.send("No token");
     }
 
-    // 🔥 Prevent duplicate (same as before)
-    const today = new Date().toDateString();
+    const today = new Date().toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    });
 
     if (data?.lastBreakfastNotif === today) {
       console.log("⚠️ Already sent today");
       return res.send("Already sent");
     }
 
-    // 🔥 Random human-like messages
     const messages = [
-      "It’s 9:30 AM Boss. Time for breakfast, I’ll be waiting 🍳",
+      "It’s 10:00 AM Boss. Time for breakfast, I’ll be waiting 🍳",
       "Morning boss… don’t skip breakfast today 👀",
       "Fuel first, hustle later. Go eat 🍽️"
     ];
 
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
-    // 🔥 SEND NOTIFICATION
-    const response = await sendNotification(
-      token,
-      "Donna ☀️",
-      randomMsg
-    );
+    console.log("📲 Sending to token:", token.slice(0, 20));
+
+    let response;
+    try {
+      response = await sendNotification(token, "Donna", randomMsg);
+    } catch (err) {
+      console.log("❌ Notification failed:", err.message);
+      return res.send("Failed to send");
+    }
 
     console.log("✅ Breakfast notification sent:", response);
 
-    // 🔥 Save state
     await userRef.set({
       lastBreakfastNotif: today
     }, { merge: true });
@@ -331,8 +332,8 @@ app.get("/breakfast", async (req, res) => {
 
 //--------LUNCH--------------------
 
-cron.schedule("0 15 * * *", async () => {
-  console.log("🍛 1PM Lunch trigger");
+app.get("/lunch", async (req, res) => {
+  console.log("🍛 Lunch endpoint hit");
 
   try {
     const userRef = db.collection("users").doc("sanjay");
@@ -342,20 +343,23 @@ cron.schedule("0 15 * * *", async () => {
     const token = data?.fcmToken;
     if (!token) {
       console.log("❌ No token found");
-      return;
+      return res.send("No token");
     }
 
-    const today = new Date().toDateString();
+    // ✅ FIX timezone (VERY IMPORTANT)
+    const today = new Date().toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    });
 
     // 🔥 Prevent duplicate
     if (data?.lastLunchNotif === today) {
       console.log("⚠️ Lunch already sent today");
-      return;
+      return res.send("Already sent");
     }
 
-    // 🔥 Human-like variation
+    // 🔥 Better + correct message (fix 3PM bug too)
     const messages = [
-      "It’s 3PM Boss. Go eat properly 🍛",
+      "It’s 1PM Boss. Go eat properly 🍛",
       "Lunch time. Don’t skip it again 😒",
       "Pause. Eat. Then conquer the day 💪",
       "You’ve earned a break. Go have lunch 🍽️"
@@ -363,24 +367,27 @@ cron.schedule("0 15 * * *", async () => {
 
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
-    const res = await sendNotification(
+    console.log("📲 Sending lunch notification");
+
+    const resNotif = await sendNotification(
       token,
       "Donna",
       randomMsg
     );
 
-    console.log("✅ Lunch notification sent:", res);
+    console.log("✅ Lunch notification sent:", resNotif);
 
     // 🔥 Save state
     await userRef.set({
       lastLunchNotif: today
     }, { merge: true });
 
+    res.send("Lunch notification sent");
+
   } catch (err) {
-    console.log("❌ Lunch cron error:", err.code, err.message);
+    console.log("❌ Lunch error:", err.message);
+    res.status(500).send("Error");
   }
-}, {
-  timezone: "Asia/Kolkata"
 });
 
 //----------------- BED TIME -------------------
