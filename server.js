@@ -531,3 +531,61 @@ app.get("/tea", async (req, res) => {
     res.status(500).send("Error");
   }
 });
+
+// ---------------- DYNAMIC REMINDERS CHECKER (called by cron-job.org) ----------------
+
+app.get("/check-reminders", async (req, res) => {
+  console.log("🔔 /check-reminders endpoint hit by cron-job.org");
+
+  try {
+    const now = admin.firestore.Timestamp.now();
+    const remindersRef = db.collection("reminders");
+
+    const dueReminders = await remindersRef
+      .where("status", "==", "pending")
+      .where("scheduledTime", "<=", now)
+      .get();
+
+    if (dueReminders.empty) {
+      console.log("✅ No due reminders right now");
+      return res.send("No due reminders");
+    }
+
+    console.log(`Found ${dueReminders.size} due reminder(s)`);
+
+    let sentCount = 0;
+
+    for (const doc of dueReminders.docs) {
+      const data = doc.data();
+      const userRef = db.collection("users").doc("sanjay");
+      const userDoc = await userRef.get();
+      const token = userDoc.data()?.fcmToken;
+
+      if (!token) {
+        console.log(`❌ No token for reminder: ${data.title}`);
+        await doc.ref.update({ status: "failed_no_token" });
+        continue;
+      }
+
+      try {
+        await sendNotification(
+          token,
+          data.title || "Donna Reminder",
+          data.body || "Don't forget!"
+        );
+
+        await doc.ref.update({ status: "sent" });
+        sentCount++;
+        console.log(`✅ Sent reminder: ${data.title}`);
+      } catch (sendErr) {
+        console.error(`❌ Failed to send: ${data.title}`, sendErr.message);
+        await doc.ref.update({ status: "failed" });
+      }
+    }
+
+    res.send(`Processed ${sentCount} reminders`);
+  } catch (err) {
+    console.error("❌ Check reminders error:", err.message);
+    res.status(500).send("Error");
+  }
+});
