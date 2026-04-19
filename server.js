@@ -343,21 +343,18 @@ app.get("/lunch", async (req, res) => {
     const token = data?.fcmToken;
     if (!token) {
       console.log("❌ No token found");
-      return res.send("No token");
+      return res.send("no-token"); // ✅ short response
     }
 
-    // ✅ FIX timezone (VERY IMPORTANT)
     const today = new Date().toLocaleDateString("en-IN", {
       timeZone: "Asia/Kolkata"
     });
 
-    // 🔥 Prevent duplicate
     if (data?.lastLunchNotif === today) {
       console.log("⚠️ Lunch already sent today");
-      return res.send("Already sent");
+      return res.send("already"); // ✅ short response
     }
 
-    // 🔥 Better + correct message (fix 3PM bug too)
     const messages = [
       "It’s 1PM Boss. Go eat properly 🍛",
       "Lunch time. Don’t skip it again 😒",
@@ -369,24 +366,19 @@ app.get("/lunch", async (req, res) => {
 
     console.log("📲 Sending lunch notification");
 
-    const resNotif = await sendNotification(
-      token,
-      "Donna",
-      randomMsg
-    );
+    await sendNotification(token, "Donna 🍛", randomMsg);
 
-    console.log("✅ Lunch notification sent:", resNotif);
+    console.log("✅ Lunch notification sent");
 
-    // 🔥 Save state
     await userRef.set({
       lastLunchNotif: today
     }, { merge: true });
 
-    res.send("Lunch notification sent");
+    return res.send("ok"); // ✅ CRON SAFE
 
   } catch (err) {
     console.log("❌ Lunch error:", err.message);
-    res.status(500).send("Error");
+    return res.status(500).send("error"); // ✅ small
   }
 });
 
