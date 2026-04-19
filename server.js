@@ -289,9 +289,9 @@ app.get("/breakfast", async (req, res) => {
       return res.send("No token");
     }
 
-    const today = new Date().toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    });
+    const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata"
+});
 
     if (data?.lastBreakfastNotif === today) {
       console.log("⚠️ Already sent today");
@@ -350,9 +350,9 @@ app.get("/lunch", async (req, res) => {
         return;
       }
 
-      const today = new Date().toLocaleDateString("en-IN", {
-        timeZone: "Asia/Kolkata"
-      });
+      const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata"
+});
 
       if (data?.lastLunchNotif === today) {
         console.log("⚠️ Already sent");
@@ -367,15 +367,14 @@ app.get("/lunch", async (req, res) => {
       ];
 
       const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+      
+      const response = await sendNotification(token, "Donna", randomMsg);
 
-      await sendNotification(token, "Donna", randomMsg);
-
-      await userRef.set({
-        lastLunchNotif: today
-      }, { merge: true });
-
-      console.log("✅ Lunch sent");
-
+if (response) {
+  await userRef.set({
+    lastLunchNotif: today
+  }, { merge: true });
+}
     } catch (err) {
       console.log("❌ Lunch background error:", err.message);
     }
@@ -395,9 +394,9 @@ app.get("/sleep", async (req, res) => {
     const token = data?.fcmToken;
     if (!token) return res.send("No token");
 
-    const today = new Date().toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    });
+    const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata"
+});
 
     if (data?.lastSleepNotif === today) {
       return res.send("Already sent");
@@ -437,9 +436,9 @@ app.get("/tea", async (req, res) => {
     const token = data?.fcmToken;
     if (!token) return res.send("No token");
 
-    const today = new Date().toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    });
+    const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata"
+});
 
     if (data?.lastTeaNotif === today) {
       return res.send("Already sent");
