@@ -42,29 +42,26 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
 
   try {
     const message = {
-  token: token,
-  data: {
-    title: title,
-    body: body,
-  }
-};
+      token: token,
+      notification: {
+        title: title,
+        body: body,
+      },
+      android: {
+        notification: {
+          channel_id: "donna_channel",   // ← Add this
+          priority: "high",              // Helps with heads-up
+          sound: "default"
+        }
+      }
+    };
 
     const response = await admin.messaging().send(message);
     console.log("✅ Notification sent successfully! Message ID:", response);
     return response;
   } catch (error) {
-    console.error("❌ FCM Send Error:");
-    console.error("Code:", error.code);
-    console.error("Message:", error.message);
-    
-    if (error.code === 'messaging/registration-token-not-registered') {
-      console.error("→ Token invalid/expired. Reload the frontend page to get a fresh token.");
-    } else if (error.code === 'messaging/unauthorized') {
-      console.error("→ Service account permission issue. Check Firebase Console > IAM & Admin.");
-    } else if (error.code === 'messaging/invalid-argument') {
-      console.error("→ Message format problem.");
-    }
-    
+    console.error("❌ FCM Send Error:", error.code, error.message);
+    // ... your existing error handling
     throw error;
   }
 }
