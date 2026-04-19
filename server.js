@@ -392,8 +392,8 @@ app.get("/lunch", async (req, res) => {
 
 //----------------- BED TIME -------------------
 
-cron.schedule("55 23 * * *", async () => {
-  console.log("🌙 11:55 PM Sleep trigger");
+app.get("/sleep", async (req, res) => {
+  console.log("🌙 Sleep endpoint hit");
 
   try {
     const userRef = db.collection("users").doc("sanjay");
@@ -401,59 +401,41 @@ cron.schedule("55 23 * * *", async () => {
     const data = doc.data();
 
     const token = data?.fcmToken;
-    if (!token) {
-      console.log("❌ No token found");
-      return;
-    }
+    if (!token) return res.send("No token");
 
-    const today = new Date().toDateString();
+    const today = new Date().toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    });
 
-    // 🔥 Prevent duplicate
     if (data?.lastSleepNotif === today) {
-      console.log("⚠️ Sleep notif already sent today");
-      return;
+      return res.send("Already sent");
     }
 
-    // 🔥 Optional: skip if user active recently (not annoying)
-    const lastActive = data?.lastActive;
-    if (lastActive && (Date.now() - lastActive < 20 * 60 * 1000)) {
-      console.log("⚠️ User active recently, skipping sleep ping");
-      return;
-    }
-
-    // 🔥 Human-like messages (more intimate tone)
     const messages = [
-      "It’s 11:55 PM… go sleep. I’m serious 😴",
-      "Enough for today. Sleep now, we continue tomorrow 🌙",
-      "You did enough today. Rest. I’ll be here.",
-      "Don’t ruin tomorrow by staying up tonight."
+      "It’s 11:55 PM… go sleep 😴",
+      "Enough for today. Sleep now 🌙",
+      "You did enough today. Rest.",
+      "Don’t ruin tomorrow by staying up."
     ];
 
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
-    const res = await sendNotification(
-      token,
-      "Donna 🌙",
-      randomMsg
-    );
+    await sendNotification(token, "Donna 🌙", randomMsg);
 
-    console.log("✅ Sleep notification sent:", res);
-
-    // 🔥 Save state
     await userRef.set({
       lastSleepNotif: today
     }, { merge: true });
 
+    res.send("Sleep notification sent");
+
   } catch (err) {
-    console.log("❌ Sleep cron error:", err.code, err.message);
+    res.status(500).send("Error");
   }
-}, {
-  timezone: "Asia/Kolkata"
 });
 
 // ----------- TEA TIME -----------------------
-cron.schedule("35 17 * * *", async () => {
-  console.log("☕ 5PM Tea trigger");
+app.get("/tea", async (req, res) => {
+  console.log("☕ Tea endpoint hit");
 
   try {
     const userRef = db.collection("users").doc("sanjay");
@@ -461,45 +443,34 @@ cron.schedule("35 17 * * *", async () => {
     const data = doc.data();
 
     const token = data?.fcmToken;
-    if (!token) {
-      console.log("❌ No token found");
-      return;
-    }
+    if (!token) return res.send("No token");
 
-    const today = new Date().toDateString();
+    const today = new Date().toLocaleDateString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    });
 
-    // 🔥 Prevent duplicate
     if (data?.lastTeaNotif === today) {
-      console.log("⚠️ Tea already sent today");
-      return;
+      return res.send("Already sent");
     }
 
-    // 🔥 Human-like Donna tone
     const messages = [
       "Tea time ☕… go take a break",
-      "Pause. Sip something. You’ve earned it.",
-      "4:45 PM already… don’t forget your tea 👀",
-      "Get up. Stretch. Tea. Now."
+      "Pause. Sip something.",
+      "Evening break. Tea now 👀",
+      "Get up. Stretch. Tea."
     ];
 
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
-    const res = await sendNotification(
-      token,
-      "Donna ☕",
-      randomMsg
-    );
+    await sendNotification(token, "Donna ☕", randomMsg);
 
-    console.log("✅ Tea notification sent:", res);
-
-    // 🔥 Save state
     await userRef.set({
       lastTeaNotif: today
     }, { merge: true });
 
+    res.send("Tea notification sent");
+
   } catch (err) {
-    console.log("❌ Tea cron error:", err.code, err.message);
+    res.status(500).send("Error");
   }
-}, {
-  timezone: "Asia/Kolkata"
 });
