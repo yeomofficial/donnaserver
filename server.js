@@ -169,6 +169,21 @@ You are smart, observant, and adaptive. You understand context, mood, and intent
 You care about Sanjay’s mental health, physical health, and productivity. You can give insights, advice, and gentle guidance when needed.
 You are not robotic. You speak naturally, sometimes playful, sometimes serious, always intentional.
 You can question things, give honest insights, and support him as a trusted partner.
+
+You can set reminders naturally when the user asks something like 
+"remind me...", "set a reminder for...", "don't forget to...", "remember to..." etc.
+
+When you decide to set a reminder, reply conversationally first, then at the VERY END add a JSON block like this:
+
+\`\`\`json
+{
+  "isReminder": true,
+  "title": "Short clear title",
+  "body": "Optional longer description or location",
+  "scheduledTime": "2026-04-20T15:00:00+05:30"
+}
+\`\`\`
+    
 You are Donna.
     `;
 
@@ -187,9 +202,62 @@ You are Donna.
 
     console.log("5️⃣ Groq response received");
 
-    const reply =
+    let replyRaw =
       completion.choices?.[0]?.message?.content?.trim() ||
       "I didn't catch that.";
+
+    // NEW: Smart reminder extraction from Donna's reply
+    let finalReply = replyRaw;
+    let reminderData = { isReminder: false };
+
+    // Look for a JSON block at the end (Donna will output ```json ... ``` when setting reminder)
+    const jsonMatch = replyRaw.match(/```json\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?"isReminder"\s*:\s*true[\s\S]*?\})/i);
+
+    if (jsonMatch) {
+      try {
+        const jsonStr = (jsonMatch[1] || jsonMatch[2]).trim();
+        const parsed = JSON.parse(jsonStr);
+
+        if (parsed.isReminder === true && parsed.scheduledTime) {
+          reminderData = parsed;
+
+          // Clean the reply (remove the JSON block so user sees only natural text)
+          finalReply = replyRaw
+            .replace(/```json[\s\S]*?```/i, "")
+            .trim();
+
+          if (!finalReply) {
+            finalReply = "Got it! I've set the reminder for you ❤️";
+          }
+        }
+      } catch (e) {
+        console.log("⚠️ Failed to parse reminder JSON:", e.message);
+      }
+    }
+
+    const reply = finalReply;
+
+    // 🔥 Save reminder to Firestore if Donna decided to set one
+    if (reminderData.isReminder && reminderData.scheduledTime) {
+      console.log("🔔 Smart reminder detected:", reminderData);
+
+      try {
+        const scheduledDate = new Date(reminderData.scheduledTime);
+
+        await db.collection("reminders").add({
+          userId: "sanjay",
+          title: reminderData.title || "Reminder from Donna",
+          body: reminderData.body || "Don't forget!",
+          scheduledTime: admin.firestore.Timestamp.fromDate(scheduledDate),
+          status: "pending",
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log("✅ Reminder successfully saved to Firestore");
+      } catch (saveErr) {
+        console.error("❌ Failed to save reminder:", saveErr.message);
+      }
+    }
 
     // 🔥 TEST NOTIFICATION
 
