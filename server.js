@@ -43,7 +43,7 @@ async function sendNotification(token, title = "Donna", body = "Hey, I missed yo
   try {
     const message = {
   token: token,
-  notification: {
+  data: {
     title: title,
     body: body,
   }
