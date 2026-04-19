@@ -331,55 +331,55 @@ app.get("/breakfast", async (req, res) => {
 });
 
 //--------LUNCH--------------------
-
 app.get("/lunch", async (req, res) => {
   console.log("🍛 Lunch endpoint hit");
 
-  try {
-    const userRef = db.collection("users").doc("sanjay");
-    const doc = await userRef.get();
-    const data = doc.data();
+  // ✅ respond immediately (no timeout)
+  res.send("ok");
 
-    const token = data?.fcmToken;
-    if (!token) {
-      console.log("❌ No token found");
-      return res.send("no-token"); // ✅ short response
+  // 🔥 run async in background
+  (async () => {
+    try {
+      const userRef = db.collection("users").doc("sanjay");
+      const doc = await userRef.get();
+      const data = doc.data();
+
+      const token = data?.fcmToken;
+      if (!token) {
+        console.log("❌ No token found");
+        return;
+      }
+
+      const today = new Date().toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata"
+      });
+
+      if (data?.lastLunchNotif === today) {
+        console.log("⚠️ Already sent");
+        return;
+      }
+
+      const messages = [
+        "It’s 1PM Boss. Go eat properly 🍛",
+        "Lunch time. Don’t skip it 😒",
+        "Pause. Eat. Then conquer 💪",
+        "You’ve earned a break 🍽️"
+      ];
+
+      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+
+      await sendNotification(token, "Donna", randomMsg);
+
+      await userRef.set({
+        lastLunchNotif: today
+      }, { merge: true });
+
+      console.log("✅ Lunch sent");
+
+    } catch (err) {
+      console.log("❌ Lunch background error:", err.message);
     }
-
-    const today = new Date().toLocaleDateString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    });
-
-    if (data?.lastLunchNotif === today) {
-      console.log("⚠️ Lunch already sent today");
-      return res.send("already"); // ✅ short response
-    }
-
-    const messages = [
-      "It’s 1PM Boss. Go eat properly 🍛",
-      "Lunch time. Don’t skip it again 😒",
-      "Pause. Eat. Then conquer the day 💪",
-      "You’ve earned a break. Go have lunch 🍽️"
-    ];
-
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-    console.log("📲 Sending lunch notification");
-
-    await sendNotification(token, "Donna 🍛", randomMsg);
-
-    console.log("✅ Lunch notification sent");
-
-    await userRef.set({
-      lastLunchNotif: today
-    }, { merge: true });
-
-    return res.send("ok"); // ✅ CRON SAFE
-
-  } catch (err) {
-    console.log("❌ Lunch error:", err.message);
-    return res.status(500).send("error"); // ✅ small
-  }
+  })();
 });
 
 //----------------- BED TIME -------------------
