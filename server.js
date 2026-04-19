@@ -275,8 +275,8 @@ app.listen(port, "0.0.0.0", () => {
 
 // CORN NOTIFICATION
 
-cron.schedule("30 9 * * *", async () => {
-  console.log("🌙 9:30 AM trigger");
+app.get("/breakfast", async (req, res) => {
+  console.log("🍳 Breakfast endpoint hit");
 
   try {
     const userRef = db.collection("users").doc("sanjay");
@@ -284,20 +284,21 @@ cron.schedule("30 9 * * *", async () => {
     const data = doc.data();
 
     const token = data?.fcmToken;
+
     if (!token) {
       console.log("❌ No token found");
-      return;
+      return res.send("No token");
     }
 
-    // 🔥 Prevent duplicate sends
+    // 🔥 Prevent duplicate (same as before)
     const today = new Date().toDateString();
 
     if (data?.lastBreakfastNotif === today) {
       console.log("⚠️ Already sent today");
-      return;
+      return res.send("Already sent");
     }
 
-    // 🔥 Slightly dynamic message (feels human)
+    // 🔥 Random human-like messages
     const messages = [
       "It’s 9:30 AM Boss. Time for breakfast, I’ll be waiting 🍳",
       "Morning boss… don’t skip breakfast today 👀",
@@ -306,24 +307,26 @@ cron.schedule("30 9 * * *", async () => {
 
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
-    const res = await sendNotification(
+    // 🔥 SEND NOTIFICATION
+    const response = await sendNotification(
       token,
       "Donna ☀️",
       randomMsg
     );
 
-    console.log("✅ Notification sent:", res);
+    console.log("✅ Breakfast notification sent:", response);
 
-    // 🔥 Save last sent date
+    // 🔥 Save state
     await userRef.set({
       lastBreakfastNotif: today
     }, { merge: true });
 
+    res.send("Breakfast notification sent");
+
   } catch (err) {
-    console.log("❌ Cron error:", err.code, err.message);
+    console.log("❌ Error:", err.message);
+    res.status(500).send("Error");
   }
-}, {
-  timezone: "Asia/Kolkata"
 });
 
 //--------LUNCH--------------------
