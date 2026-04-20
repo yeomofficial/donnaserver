@@ -250,52 +250,51 @@ You are Donna.
     
     const reply = finalReply;
 
-    // 🔥 Save reminder to Firestore if Donna decided to set one
     if (reminderData.isReminder && reminderData.scheduledTime) {
-      console.log("🔔 Smart reminder detected:", reminderData);
 
-      try {
-  // 🔥 Fix timezone
-  const fixedTime = ensureIST(reminderData.scheduledTime);
-  let scheduledDate = new Date(fixedTime);
+  try {
+    const fixedTime = ensureIST(reminderData.scheduledTime);
+    let scheduledDate = new Date(fixedTime);
 
-  if (!isValidDate(scheduledDate)) {
-    console.log("❌ Invalid reminder time");
-    return;
+    if (!isValidDate(scheduledDate)) {
+      console.log("❌ Invalid reminder time");
+      return;
+    }
+
+    const now = new Date();
+    if (scheduledDate < now) {
+      scheduledDate.setDate(scheduledDate.getDate() + 1);
+    }
+
+    const existing = await db.collection("reminders")
+      .where("userId", "==", "sanjay")
+      .where("title", "==", reminderData.title)
+      .where("scheduledTime", "==", admin.firestore.Timestamp.fromDate(scheduledDate))
+      .get();
+
+    if (!existing.empty) {
+      console.log("⚠️ Duplicate reminder skipped");
+      return;
+    }
+
+    await db.collection("reminders").add({
+      userId: "sanjay",
+      title: reminderData.title || "Reminder from Donna",
+      body: reminderData.body || "Don't forget!",
+      scheduledTime: admin.firestore.Timestamp.fromDate(scheduledDate),
+      status: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    })}`;
+
+  } catch (err) {
+    console.log("❌ Reminder save error:", err.message);
   }
 
-  const now = new Date();
-  if (scheduledDate < now) {
-    scheduledDate.setDate(scheduledDate.getDate() + 1);
-  }
-
-  const existing = await db.collection("reminders")
-    .where("userId", "==", "sanjay")
-    .where("title", "==", reminderData.title)
-    .where("scheduledTime", "==", admin.firestore.Timestamp.fromDate(scheduledDate))
-    .get();
-
-  if (!existing.empty) {
-    console.log("⚠️ Duplicate reminder skipped");
-    return;
-  }
-
-  await db.collection("reminders").add({
-    userId: "sanjay",
-    title: reminderData.title || "Reminder from Donna",
-    body: reminderData.body || "Don't forget!",
-    scheduledTime: admin.firestore.Timestamp.fromDate(scheduledDate),
-    status: "pending",
-    createdAt: admin.firestore.FieldValue.serverTimestamp()
-  });
-
-  finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata"
-  })}`;
-
-} catch (err) {
-  console.log("❌ Reminder save error:", err.message);
-      }
+    }
 
     // 🔥 TEST NOTIFICATION
 
