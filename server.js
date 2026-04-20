@@ -338,246 +338,82 @@ app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${port}`);
 });
 
-// CORN NOTIFICATION
-app.get("/breakfast", async (req, res) => {
-  console.log("🍳 Breakfast endpoint hit");
+// ------------------CORN NOTIFICATION-----------------------
 
-  try {
-    const userRef = db.collection("users").doc("sanjay");
-    const doc = await userRef.get();
-    const data = doc.data();
+app.get("/check-reminders", (req, res) => {
+  console.log("🔔 check-reminders hit");
 
-    const token = data?.fcmToken;
-
-    if (!token) {
-      console.log("❌ No token found");
-      return res.send("No token");
-    }
-
-    const today = new Date().toLocaleDateString("en-CA", {
-  timeZone: "Asia/Kolkata"
-});
-
-    if (data?.lastBreakfastNotif === today) {
-      console.log("⚠️ Already sent today");
-      return res.send("Already sent");
-    }
-
-    const messages = [
-      "It’s 10:00 AM Boss. Time for breakfast, I’ll be waiting 🍳",
-      "Morning boss… don’t skip breakfast today 👀",
-      "Fuel first, hustle later. Go eat 🍽️"
-    ];
-
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-    console.log("📲 Sending to token:", token.slice(0, 20));
-
-    let response;
-    try {
-      response = await sendNotification(token, "Donna", randomMsg);
-    } catch (err) {
-      console.log("❌ Notification failed:", err.message);
-      return res.send("Failed to send");
-    }
-
-    console.log("✅ Breakfast notification sent:", response);
-
-    await userRef.set({
-      lastBreakfastNotif: today
-    }, { merge: true });
-
-    res.send("Breakfast notification sent");
-
-  } catch (err) {
-    console.log("❌ Error:", err.message);
-    res.status(500).send("Error");
-  }
-});
-
-//--------LUNCH--------------------
-app.get("/lunch", (req, res) => {
-  console.log("🍛 Lunch endpoint hit");
-
-  res.end("ok"); // 🔥 safest response
+  // 🔥 respond instantly (prevents cron timeout)
+  res.status(200).end("ok");
 
   (async () => {
     try {
       const userRef = db.collection("users").doc("sanjay");
-      const doc = await userRef.get();
-      const data = doc.data();
+      const userDoc = await userRef.get();
+      const data = userDoc.data() || {};
 
-      const token = data?.fcmToken;
+      const token = data.fcmToken;
       if (!token) return;
+
+      // 🕒 IST time
+      const now = new Date().toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
 
       const today = new Date().toLocaleDateString("en-CA", {
         timeZone: "Asia/Kolkata"
       });
 
-      if (data?.lastLunchNotif === today) return;
+      // =========================
+      // 🟡 STATIC REMINDERS
+      // =========================
+      const reminders = data.reminders || [];
 
-      const messages = [
-        "It’s 1PM Boss. Go eat properly 🍛",
-        "Lunch time. Don’t skip it 😒",
-        "Pause. Eat. Then conquer 💪",
-        "You’ve earned a break for lunch 🍽️"
-      ];
+      for (const r of reminders) {
+        if (r.time === now) {
+          const key = `last_${r.time}`;
 
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+          if (data[key] === today) continue;
 
-      await sendNotification(token, "Donna", randomMsg);
+          await sendNotification(token, r.title, r.body);
 
-      await userRef.set({
-        lastLunchNotif: today
-      }, { merge: true });
+          await userRef.set({
+            [key]: today
+          }, { merge: true });
 
-      console.log("✅ Lunch sent");
-
-    } catch (err) {
-      console.log("❌ Lunch error:", err.message);
-    }
-  })();
-});
-
-//----------------- BED TIME -------------------
-
-app.get("/sleep", async (req, res) => {
-  console.log("🌙 Sleep endpoint hit");
-
-  try {
-    const userRef = db.collection("users").doc("sanjay");
-    const doc = await userRef.get();
-    const data = doc.data();
-
-    const token = data?.fcmToken;
-    if (!token) return res.send("No token");
-
-    const today = new Date().toLocaleDateString("en-CA", {
-  timeZone: "Asia/Kolkata"
-});
-
-    if (data?.lastSleepNotif === today) {
-      return res.send("Already sent");
-    }
-
-    const messages = [
-      "It’s 11:55 PM… go sleep 😴",
-      "Enough for today. Sleep now 🌙",
-      "You did enough today. Rest.",
-      "Don’t ruin tomorrow by staying up."
-    ];
-
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-    await sendNotification(token, "Donna 🌙", randomMsg);
-
-    await userRef.set({
-      lastSleepNotif: today
-    }, { merge: true });
-
-    res.send("Sleep notification sent");
-
-  } catch (err) {
-    res.status(500).send("Error");
-  }
-});
-
-// ----------- TEA TIME -----------------------
-app.get("/tea", async (req, res) => {
-  console.log("☕ Tea endpoint hit");
-
-  try {
-    const userRef = db.collection("users").doc("sanjay");
-    const doc = await userRef.get();
-    const data = doc.data();
-
-    const token = data?.fcmToken;
-    if (!token) return res.send("No token");
-
-    const today = new Date().toLocaleDateString("en-CA", {
-  timeZone: "Asia/Kolkata"
-});
-
-    if (data?.lastTeaNotif === today) {
-      return res.send("Already sent");
-    }
-
-    const messages = [
-      "Tea time ☕… go take a break",
-      "Pause. Sip something.",
-      "Evening break. Tea now 👀",
-      "Get up. Stretch. Tea."
-    ];
-
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-    await sendNotification(token, "Donna ☕", randomMsg);
-
-    await userRef.set({
-      lastTeaNotif: today
-    }, { merge: true });
-
-    res.send("Tea notification sent");
-
-  } catch (err) {
-    res.status(500).send("Error");
-  }
-});
-
-// ---------------- DYNAMIC REMINDERS CHECKER (called by cron-job.org) ----------------
-
-app.get("/check-reminders", async (req, res) => {
-  console.log("🔔 /check-reminders endpoint hit by cron-job.org");
-
-  try {
-    const now = admin.firestore.Timestamp.now();
-    const remindersRef = db.collection("reminders");
-
-    const dueReminders = await remindersRef
-      .where("status", "==", "pending")
-      .where("scheduledTime", "<=", now)
-      .get();
-
-    if (dueReminders.empty) {
-      console.log("✅ No due reminders right now");
-      return res.send("No due reminders");
-    }
-
-    console.log(`Found ${dueReminders.size} due reminder(s)`);
-
-    let sentCount = 0;
-
-    for (const doc of dueReminders.docs) {
-      const data = doc.data();
-      const userRef = db.collection("users").doc("sanjay");
-      const userDoc = await userRef.get();
-      const token = userDoc.data()?.fcmToken;
-
-      if (!token) {
-        console.log(`❌ No token for reminder: ${data.title}`);
-        await doc.ref.update({ status: "failed_no_token" });
-        continue;
+          console.log("✅ Static sent:", r.body);
+        }
       }
 
-      try {
+      // =========================
+      // 🔵 DYNAMIC REMINDERS
+      // =========================
+      const nowTs = admin.firestore.Timestamp.now();
+
+      const dueReminders = await db.collection("reminders")
+        .where("status", "==", "pending")
+        .where("scheduledTime", "<=", nowTs)
+        .get();
+
+      for (const doc of dueReminders.docs) {
+        const d = doc.data();
+
         await sendNotification(
           token,
-          data.title || "Donna Reminder",
-          data.body || "Don't forget!"
+          d.title || "Reminder",
+          d.body || "Don't forget"
         );
 
         await doc.ref.update({ status: "sent" });
-        sentCount++;
-        console.log(`✅ Sent reminder: ${data.title}`);
-      } catch (sendErr) {
-        console.error(`❌ Failed to send: ${data.title}`, sendErr.message);
-        await doc.ref.update({ status: "failed" });
-      }
-    }
 
-    res.send(`Processed ${sentCount} reminders`);
-  } catch (err) {
-    console.error("❌ Check reminders error:", err.message);
-    res.status(500).send("Error");
-  }
+        console.log("✅ Dynamic sent:", d.title);
+      }
+
+    } catch (err) {
+      console.log("❌ check-reminders error:", err.message);
+    }
+  })();
 });
