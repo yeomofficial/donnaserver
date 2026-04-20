@@ -107,6 +107,17 @@ ${message}
 }
 
 /* ---------------- CHAT ROUTE ---------------- */
+function isValidDate(date) {
+  return date instanceof Date && !isNaN(date);
+}
+
+function ensureIST(timeStr) {
+  if (!timeStr.includes("+")) {
+    return timeStr + "+05:30";
+  }
+  return timeStr;
+}
+
 app.post("/api/chat", async (req, res) => {
   const userId = "sanjay";
   const { message } = req.body;
@@ -172,8 +183,13 @@ You can question things, give honest insights, and support him as a trusted part
 You can set reminders naturally when the user asks something like 
 "remind me...", "set a reminder for...", "don't forget to...", "remember to..." etc.
 
-When you decide to set a reminder, reply conversationally first, then at the VERY END add a JSON block like this:
+Only create a reminder if the user clearly provides BOTH:
+- a time
+- an action
 
+If the time is vague (like "later", "soon"), ask a follow-up instead of setting it.
+
+When you decide to set a reminder, reply conversationally first, then at the VERY END add a JSON block like this:
 \`\`\`json
 {
   "isReminder": true,
@@ -210,30 +226,28 @@ You are Donna.
     let reminderData = { isReminder: false };
 
     // Look for a JSON block at the end (Donna will output ```json ... ``` when setting reminder)
-    const jsonMatch = replyRaw.match(/```json\s*(\{[\s\S]*?\})\s*```|(\{[\s\S]*?"isReminder"\s*:\s*true[\s\S]*?\})/i);
+    const jsonMatch = replyRaw.match(/```json([\s\S]*?)```/i);
 
     if (jsonMatch) {
-      try {
-        const jsonStr = (jsonMatch[1] || jsonMatch[2]).trim();
-        const parsed = JSON.parse(jsonStr);
+  try {
+    const jsonStr = jsonMatch[1].trim();
+    const parsed = JSON.parse(jsonStr);
 
-        if (parsed.isReminder === true && parsed.scheduledTime) {
-          reminderData = parsed;
+    if (parsed.isReminder === true && parsed.scheduledTime) {
+      reminderData = parsed;
 
-          // Clean the reply (remove the JSON block so user sees only natural text)
-          finalReply = replyRaw
-            .replace(/```json[\s\S]*?```/i, "")
-            .trim();
+      // Clean UI reply
+      finalReply = replyRaw.replace(/```json[\s\S]*?```/i, "").trim();
 
-          if (!finalReply) {
-            finalReply = "Got it! I've set the reminder for you ❤️";
-          }
-        }
-      } catch (e) {
-        console.log("⚠️ Failed to parse reminder JSON:", e.message);
+      if (!finalReply) {
+        finalReply = "Got it! I've set the reminder for you ❤️";
       }
     }
-
+  } catch (e) {
+    console.log("⚠️ Failed to parse reminder JSON:", e.message);
+  }
+    }
+    
     const reply = finalReply;
 
     // 🔥 Save reminder to Firestore if Donna decided to set one
@@ -241,21 +255,48 @@ You are Donna.
       console.log("🔔 Smart reminder detected:", reminderData);
 
       try {
-        const scheduledDate = new Date(reminderData.scheduledTime);
+        // 🔥 Fix timezone
+const fixedTime = ensureIST(reminderData.scheduledTime);
+let scheduledDate = new Date(fixedTime);
 
-        await db.collection("reminders").add({
-          userId: "sanjay",
-          title: reminderData.title || "Reminder from Donna",
-          body: reminderData.body || "Don't forget!",
-          scheduledTime: admin.firestore.Timestamp.fromDate(scheduledDate),
-          status: "pending",
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+// 🔥 Validate date
+if (!isValidDate(scheduledDate)) {
+  console.log("❌ Invalid reminder time");
+  return;
+}
 
-        console.log("✅ Reminder successfully saved to Firestore");
-      } catch (saveErr) {
-        console.error("❌ Failed to save reminder:", saveErr.message);
-      }
+// 🔥 Prevent past time
+const now = new Date();
+if (scheduledDate < now) {
+  scheduledDate.setDate(scheduledDate.getDate() + 1);
+}
+
+// 🔥 Prevent duplicates
+const existing = await db.collection("reminders")
+  .where("userId", "==", "sanjay")
+  .where("title", "==", reminderData.title)
+  .where("scheduledTime", "==", admin.firestore.Timestamp.fromDate(scheduledDate))
+  .get();
+
+if (!existing.empty) {
+  console.log("⚠️ Duplicate reminder skipped");
+  return;
+}
+
+// 🔥 Save
+await db.collection("reminders").add({
+  userId: "sanjay",
+  title: reminderData.title || "Reminder from Donna",
+  body: reminderData.body || "Don't forget!",
+  scheduledTime: admin.firestore.Timestamp.fromDate(scheduledDate),
+  status: "pending",
+  createdAt: admin.firestore.FieldValue.serverTimestamp()
+});
+
+// 🔥 Confirm to user
+finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
+  timeZone: "Asia/Kolkata"
+})}`;
     }
 
     // 🔥 TEST NOTIFICATION
