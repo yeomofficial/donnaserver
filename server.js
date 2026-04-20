@@ -340,12 +340,16 @@ You are Donna.
       console.log("Memory extraction failed safely");
     }
 
-    if (memoryResult.save && memoryResult.memory) {
-      memory.push(memoryResult.memory);
-      memory = memory.slice(-20);
-      console.log("🧠 Memory saved:", memoryResult.memory);
+    if (
+  memoryResult.save &&
+  memoryResult.memory &&
+  !memoryResult.memory.toLowerCase().includes("remind") &&
+  !memoryResult.memory.toLowerCase().includes("meeting") &&
+  !memoryResult.memory.toLowerCase().includes("at") // simple filter
+) {
+  memory.push(memoryResult.memory);
     }
-
+    
     await db.collection("users").doc(userId).set({
   history,
   memory,
