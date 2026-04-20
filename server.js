@@ -1,7 +1,6 @@
 const express = require("express");
 const { Groq } = require("groq-sdk");
 const admin = require("firebase-admin");
-const cron = require("node-cron");
 
 const app = express();
 const port = process.env.PORT || 10000;
