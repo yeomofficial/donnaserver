@@ -272,9 +272,6 @@ You are Donna.
       console.log("❌ Invalid reminder time");
       return;
     
-    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    })}`;
     }
 
     const now = new Date();
@@ -302,7 +299,9 @@ You are Donna.
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    
+    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    })}`;
 
   } catch (err) {
     console.log("❌ Reminder save error:", err.message);
