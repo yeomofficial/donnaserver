@@ -81,9 +81,19 @@ Return ONLY JSON:
   "memory": "short fact or empty"
 }
 
+Rules:
+- Only store long-term personal facts (preferences, habits, personality)
+- DO NOT store:
+  - reminders
+  - tasks
+  - meetings
+  - schedules
+  - times or dates
+- Ignore anything about future plans
+
 Message:
 ${message}
-          `,
+`,
         },
       ],
       model: "llama-3.1-8b-instant",
@@ -247,6 +257,10 @@ You are Donna.
     console.log("⚠️ Failed to parse reminder JSON:", e.message);
   }
     }
+
+    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    })}`;
     
     const reply = finalReply;
 
@@ -286,9 +300,6 @@ You are Donna.
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    })}`;
 
   } catch (err) {
     console.log("❌ Reminder save error:", err.message);
@@ -331,11 +342,20 @@ You are Donna.
     history = history.slice(-10); // keep small
 
     console.log("6️⃣ Running memory extraction");
-
+    
+    if (reminderData.isReminder) {
+  console.log("🚫 Skipping memory (reminder detected)");
+} else if (
+  memoryResult.save &&
+  memoryResult.memory
+) {
+  memory.push(memoryResult.memory);
+    }
+    
     let memoryResult = { save: false };
 
     try {
-      memoryResult = await extractMemory(message);
+      memoryResult = await extractMemory(finalReply);
     } catch (e) {
       console.log("Memory extraction failed safely");
     }
@@ -343,9 +363,6 @@ You are Donna.
     if (
   memoryResult.save &&
   memoryResult.memory &&
-  !memoryResult.memory.toLowerCase().includes("remind") &&
-  !memoryResult.memory.toLowerCase().includes("meeting") &&
-  !memoryResult.memory.toLowerCase().includes("at") // simple filter
 ) {
   memory.push(memoryResult.memory);
     }
