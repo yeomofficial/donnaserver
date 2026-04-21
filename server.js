@@ -271,6 +271,10 @@ You are Donna.
     if (!isValidDate(scheduledDate)) {
       console.log("❌ Invalid reminder time");
       return;
+    
+    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    })}`;
     }
 
     const now = new Date();
@@ -305,9 +309,6 @@ You are Donna.
   }
 
     }
-    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    })}`;
 
     // 🔥 TEST NOTIFICATION
 
