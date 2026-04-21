@@ -258,9 +258,7 @@ You are Donna.
   }
     }
 
-    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata"
-    })}`;
+    
     
     const reply = finalReply;
 
@@ -300,6 +298,9 @@ You are Donna.
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    finalReply += `\n\n⏰ Reminder set for ${scheduledDate.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata"
+    })}`;
 
   } catch (err) {
     console.log("❌ Reminder save error:", err.message);
@@ -342,15 +343,20 @@ You are Donna.
     history = history.slice(-10); // keep small
 
     console.log("6️⃣ Running memory extraction");
-    
-    if (reminderData.isReminder) {
+
+let memoryResult = { save: false };
+
+try {
+  memoryResult = await extractMemory(finalReply);
+} catch (e) {
+  console.log("Memory extraction failed safely");
+}
+
+if (reminderData.isReminder) {
   console.log("🚫 Skipping memory (reminder detected)");
-} else if (
-  memoryResult.save &&
-  memoryResult.memory
-) {
+} else if (memoryResult.save && memoryResult.memory) {
   memory.push(memoryResult.memory);
-    }
+}
     
     let memoryResult = { save: false };
 
@@ -358,13 +364,6 @@ You are Donna.
       memoryResult = await extractMemory(finalReply);
     } catch (e) {
       console.log("Memory extraction failed safely");
-    }
-
-    if (
-  memoryResult.save &&
-  memoryResult.memory &&
-) {
-  memory.push(memoryResult.memory);
     }
     
     await db.collection("users").doc(userId).set({
