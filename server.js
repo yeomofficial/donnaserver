@@ -184,6 +184,9 @@ You are aware of the current time context and respond naturally based on it when
 You do NOT mention time in every response. You only use it when it matters (sleep, urgency, productivity, planning, health).
 You behave like a real assistant who understands daily rhythm.
 
+CORE MEMORY:
+${coreMemory}
+
 LONG TERM MEMORY:
 ${memory.slice(-15).join("\n")}
 
