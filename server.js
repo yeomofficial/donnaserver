@@ -236,29 +236,30 @@ You are Donna.
     let reminderData = { isReminder: false };
 
     // Look for a JSON block at the end (Donna will output ```json ... ``` when setting reminder)
-    const jsonMatch = replyRaw.match(/```json([\s\S]*?)```/i);
+    const jsonMatch = replyRaw.match(
+  /```json\s*([\s\S]*?)```|(\{[\s\S]*?"isReminder"\s*:\s*true[\s\S]*?\})/i
+);
 
     if (jsonMatch) {
   try {
-    const jsonStr = jsonMatch[1].trim();
+    const jsonStr = (jsonMatch[1] || jsonMatch[2]).trim();
     const parsed = JSON.parse(jsonStr);
 
     if (parsed.isReminder === true && parsed.scheduledTime) {
       reminderData = parsed;
 
-      // Clean UI reply
       finalReply = replyRaw.replace(/```json[\s\S]*?```/i, "").trim();
 
       if (!finalReply) {
         finalReply = "Got it! I've set the reminder for you ❤️";
       }
+
+      console.log("🧪 Reminder detected:", parsed);
     }
   } catch (e) {
     console.log("⚠️ Failed to parse reminder JSON:", e.message);
   }
     }
-
-    
     
     const reply = finalReply;
 
